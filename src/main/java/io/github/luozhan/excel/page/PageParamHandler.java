@@ -1,7 +1,5 @@
 package io.github.luozhan.excel.page;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import org.springframework.core.ResolvableType;
 
 /**
@@ -10,8 +8,6 @@ import org.springframework.core.ResolvableType;
  *
  * @param <T> 你项目使用的分页DTO类
  */
-@Getter
-@AllArgsConstructor
 public abstract class PageParamHandler<T> {
 
     public abstract void accept(T page, int pageNumber, int pageSize);

@@ -3,7 +3,6 @@ package io.github.luozhan.excel;
 import io.github.luozhan.excel.page.PageParamHandler;
 import io.github.luozhan.excel.page.PageParamProxy;
 import io.github.luozhan.excel.style.AdaptiveWidthStyleStrategy;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.CharEncoding;
 import org.apache.fesod.sheet.ExcelWriter;
 import org.apache.fesod.sheet.FesodSheet;
@@ -12,6 +11,8 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.convert.ConversionService;
@@ -39,8 +40,8 @@ import java.util.Objects;
 @Aspect
 @Component
 @Order(1)
-@Slf4j
 public class ExportExcelAspect {
+    private static final Logger log = LoggerFactory.getLogger(ExportExcelAspect.class);
     private static final String EXPORT_KEYWORDS = "export";
     private static final String FILE_NAME_KEYWORDS = "fileName";
 
