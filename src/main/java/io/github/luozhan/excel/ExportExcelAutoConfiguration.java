@@ -1,0 +1,41 @@
+package io.github.luozhan.excel;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.github.luozhan.excel.converter.impl.MybatisPlusPageDataConverter;
+import io.github.luozhan.excel.converter.impl.SpringPageDataConverter;
+import io.github.luozhan.excel.page.impl.MybatisPlusPageParamHandler;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+
+/**
+ * ExportExcel自动配置
+ *
+ * @author luozhan
+ * @since 2026-05-04
+ */
+@AutoConfiguration
+@Import(ExportExcelAspect.class)
+public class ExportExcelAutoConfiguration {
+
+    @Bean
+    @ConditionalOnClass(Page.class)
+    public SpringPageDataConverter springPageToListConverter() {
+        return new SpringPageDataConverter();
+    }
+
+    @Bean
+    @ConditionalOnClass(IPage.class)
+    public MybatisPlusPageDataConverter mybatisPlusPageDataConverter() {
+        return new MybatisPlusPageDataConverter();
+    }
+
+    @Bean
+    @ConditionalOnClass(IPage.class)
+    public MybatisPlusPageParamHandler mybatisPlusPageParamHandler() {
+        return new MybatisPlusPageParamHandler();
+    }
+
+}
