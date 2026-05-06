@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.format.support.FormattingConversionService;
 import org.springframework.lang.NonNull;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -44,7 +45,7 @@ public class ExportExcelAspect {
     private static final String FILE_NAME_KEYWORDS = "fileName";
 
     @Resource
-    private ConversionService conversionService;
+    private FormattingConversionService conversionService;
 
     @Resource
     private List<PageParamHandler<?>> pageParamHandlers;
