@@ -13,7 +13,7 @@
 ## 特性
 
 - **注解驱动**：在 Controller 方法上添加 `@ExportExcel` 注解即可启用导出
-- **零改造**：前端在原有 URL 参数中加入 `export=true` 即可触发导出，无需新增接口
+- **零改造**：前端在原有 URL 后增加 `/export` 即可触发导出，无需新增接口
 - **分批流式导出**：自动识别分页参数，分批查询并流式写入 Excel，内存占用极低
 - **自适应列宽**：根据表头和单元格内容自动调整列宽，中英文字符精确计算
 - **多框架支持**：内置 MyBatis-Plus (`IPage`) 和 Spring Data (`Page`) 分页适配
@@ -32,7 +32,7 @@
 <dependency>
     <groupId>io.github.luo-zhan</groupId>
     <artifactId>export-excel</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -75,7 +75,7 @@ public IPage<DemoVO> list(PageRequest pageRequest, QueryDTO query) {
 在原有查一下接口 URL 后加上 `/export` 即可：
 
 ```
-GET /list/page?pageNum=1&pageSize=10
+GET /page/export
 ```
 
 另外也可通过 `fileName` 参数指定导出文件名（不需要加`.xlsx`）：
@@ -141,7 +141,11 @@ public class MyPageParamHandler extends PageParamHandler<MyPageRequest> {
     }
 }
 ```
-
+## 试用
+下载源码，找到`SampleApplication.java`运行起来，启动并访问该类中的接口即可
+```
+http://localhost:8080/page/export
+```
 
 ## 许可证
 
