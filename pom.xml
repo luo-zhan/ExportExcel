@@ -4,11 +4,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- 你的项目坐标（保持不变） -->
     <groupId>io.github.luo-zhan</groupId>
     <artifactId>export-excel</artifactId>
     <version>1.0.0</version>
-    <packaging>jar</packaging>
+
     <name>ExportExcel</name>
     <description>Excel export component based on Apache Fesod</description>
     <url>https://github.com/luo-zhan/export-excel</url>
@@ -175,6 +174,7 @@
                 <version>0.10.0</version>
                 <extensions>true</extensions>
                 <configuration>
+                    <!-- 和setting中配置的Server一致   -->
                     <publishingServerId>central</publishingServerId>
                     <autoPublish>true</autoPublish>
                 </configuration>
