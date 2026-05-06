@@ -2,6 +2,7 @@ package io.github.luozhan.excel.sample.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
@@ -13,9 +14,10 @@ import java.util.List;
 @Getter
 @Setter
 @AllArgsConstructor
+@NoArgsConstructor
 @ToString
 public class MyPage<T> {
-    int pageNum;
-    int pageSize;
-    List<T> content;
+    private int pageNum;
+    private int pageSize;
+    private List<T> content;
 }

@@ -6,9 +6,12 @@ import io.github.luozhan.excel.converter.impl.SpringPageDataConverter;
 import io.github.luozhan.excel.page.impl.MybatisPlusPageParamHandler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.Ordered;
 import org.springframework.data.domain.Page;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 /**
  * ExportExcel自动配置
@@ -38,4 +41,13 @@ public class ExportExcelAutoConfiguration {
         return new MybatisPlusPageParamHandler();
     }
 
+    @Bean
+    public FilterRegistrationBean<ExportExcelFilter> exportExcelFilterRegistration(RequestMappingHandlerMapping handlerMapping) {
+        FilterRegistrationBean<ExportExcelFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new ExportExcelFilter(handlerMapping));
+        registration.addUrlPatterns("/*");
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        registration.setName("exportExcelFilter");
+        return registration;
+    }
 }

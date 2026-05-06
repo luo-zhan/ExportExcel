@@ -72,7 +72,7 @@ public class SampleApplication {
         if (fromIndex >= TEST_DATA.size()) {
             return new PageImpl<>(new ArrayList<>()) ;
         }
-        if(fromIndex==0){
+        if(fromIndex==1){
             throw new RuntimeException("error");
         }
         return new PageImpl<>(TEST_DATA.subList(fromIndex, toIndex));

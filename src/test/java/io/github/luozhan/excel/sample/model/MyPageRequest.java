@@ -8,8 +8,9 @@ import lombok.*;
 @Getter
 @Setter
 @AllArgsConstructor
+@NoArgsConstructor
 @ToString
 public class MyPageRequest {
-    int pageNum;
-        int pageSize;
+    private int pageNum;
+    private int pageSize;
 }

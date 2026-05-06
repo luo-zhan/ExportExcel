@@ -56,8 +56,8 @@ class ExportExcelIntegrationTest {
     }
 
     @Test
-    void shouldExportExcelWhenExportParamIsTrue() throws Exception {
-        mockMvc.perform(get("/list").param("export", "true"))
+    void shouldExportExcelWhenUrlEndsWithExport() throws Exception {
+        mockMvc.perform(get("/list/export"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type",
                         containsString("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")))
@@ -73,8 +73,7 @@ class ExportExcelIntegrationTest {
 
     @Test
     void shouldExportWithCustomFileName() throws Exception {
-        mockMvc.perform(get("/list")
-                        .param("export", "true")
+        mockMvc.perform(get("/list/export")
                         .param("fileName", "自定义文件"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition",
@@ -85,7 +84,7 @@ class ExportExcelIntegrationTest {
 
     @Test
     void shouldExportWithDefaultFileName() throws Exception {
-        mockMvc.perform(get("/list").param("export", "true"))
+        mockMvc.perform(get("/list/export"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition",
                         containsString("attachment;filename=")));
@@ -93,7 +92,7 @@ class ExportExcelIntegrationTest {
 
     @Test
     void shouldExportEmptyList() throws Exception {
-        mockMvc.perform(get("/empty-list").param("export", "true"))
+        mockMvc.perform(get("/empty-list/export"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type",
                         containsString("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")));
@@ -102,7 +101,7 @@ class ExportExcelIntegrationTest {
     @Test
     void shouldExportInBatches() throws Exception {
         batchCallCount.set(0);
-        mockMvc.perform(get("/batch").param("export", "true"))
+        mockMvc.perform(get("/batch/export"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type",
                         containsString("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")))
@@ -124,8 +123,7 @@ class ExportExcelIntegrationTest {
                 .andExpect(jsonPath("$.content.length()").value(2));
 
         batchCallCount.set(0);
-        mockMvc.perform(get("/batch")
-                        .param("export", "true")
+        mockMvc.perform(get("/batch/export")
                         .param("current", "1")
                         .param("size", "2"))
                 .andExpect(status().isOk())
@@ -149,7 +147,7 @@ class ExportExcelIntegrationTest {
     @Test
     void shouldThrowWhenExceedLimit() throws Exception {
         Exception thrown = assertThrows(Exception.class, () ->
-                mockMvc.perform(get("/exceed-max").param("export", "true"))
+                mockMvc.perform(get("/exceed-max/export"))
         );
         Throwable cause = thrown.getCause();
         assertInstanceOf(IllegalArgumentException.class, cause,

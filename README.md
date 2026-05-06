@@ -72,16 +72,16 @@ public IPage<DemoVO> list(PageRequest pageRequest, QueryDTO query) {
 
 ### 4. 前端触发导出
 
-在原有请求 URL 后追加 `export=true` 参数即可：
+在原有查一下接口 URL 后加上 `/export` 即可：
 
 ```
-GET /list?pageNum=1&pageSize=10&export=true
+GET /list/page?pageNum=1&pageSize=10
 ```
 
-另外也可通过 `fileName` 参数指定导出文件名：
+另外也可通过 `fileName` 参数指定导出文件名（不需要加`.xlsx`）：
 
 ```
-GET /list?export=true&fileName=员工数据报表
+GET /list/export?fileName=员工数据报表
 ```
 
 ## 注解参数
@@ -142,26 +142,6 @@ public class MyPageParamHandler extends PageParamHandler<MyPageRequest> {
 }
 ```
 
-## 项目结构
-
-```
-src/main/java/io/github/luozhan/excel/
-├── ExportExcel.java                    # 核心注解
-├── ExportExcelAspect.java              # AOP 切面，处理导出逻辑
-├── ExportExcelAutoConfiguration.java   # Spring Boot 自动配置
-├── converter/
-│   ├── ExcelDataConverter.java         # 数据转换器接口
-│   └── impl/
-│       ├── MybatisPlusPageDataConverter.java  # MyBatis-Plus 分页数据转换
-│       └── SpringPageDataConverter.java       # Spring Data 分页数据转换
-├── page/
-│   ├── PageParamHandler.java           # 分页参数处理器抽象类
-│   ├── PageParamProxy.java             # 分页参数代理
-│   └── impl/
-│       └── MybatisPlusPageParamHandler.java   # MyBatis-Plus 分页参数处理
-└── style/
-    └── AdaptiveWidthStyleStrategy.java # 自适应列宽策略
-```
 
 ## 许可证
 

@@ -17,7 +17,6 @@ import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.lang.NonNull;
-import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -38,7 +37,6 @@ import java.util.Objects;
  * @since 2026-05-04
  */
 @Aspect
-@Component
 @Order(1)
 public class ExportExcelAspect {
     private static final Logger log = LoggerFactory.getLogger(ExportExcelAspect.class);
@@ -201,7 +199,7 @@ public class ExportExcelAspect {
     }
 
     private boolean isExportRequest(HttpServletRequest request) {
-        return Boolean.TRUE.toString().equals(request.getParameter(EXPORT_KEYWORDS));
+        return Boolean.TRUE.equals(request.getAttribute(ExportExcelFilter.EXPORT_FLAG_ATTRIBUTE));
     }
 
 }
