@@ -69,6 +69,8 @@ public class AdaptiveWidthStyleStrategy extends AbstractColumnWidthStyleStrategy
                 return stringWidth(cellData.getBooleanValue().toString());
             case NUMBER:
                 return stringWidth(cellData.getNumberValue().toString());
+            case DATE:
+                return stringWidth(cellData.getDateValue().toString());
             default:
                 return -1;
         }
