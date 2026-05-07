@@ -3,6 +3,9 @@ package io.github.luozhan.excel.sample.model;
 import lombok.*;
 import org.apache.fesod.sheet.annotation.ExcelProperty;
 
+import java.math.BigDecimal;
+import java.util.Date;
+
 /**
  * 示例VO对象
  */
@@ -42,5 +45,11 @@ public class DemoVO {
 
     @ExcelProperty("个人简介")
     private String bio;
+
+    @ExcelProperty("生日")
+    private Date birth;
+
+    @ExcelProperty("收入")
+    private BigDecimal in;
 
 }

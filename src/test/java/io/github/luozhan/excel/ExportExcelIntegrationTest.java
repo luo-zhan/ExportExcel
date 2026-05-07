@@ -17,8 +17,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.ByteArrayInputStream;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -34,13 +36,13 @@ class ExportExcelIntegrationTest {
     private static final List<DemoVO> TEST_DATA = Arrays.asList(
             new DemoVO("张三", 25, true, "技术研发部",
                     "zhangsan@company.com", "13800138001",
-                    "北京市朝阳区建国路88号", "Java开发", "EMP001", "10年经验"),
+                    "北京市朝阳区建国路88号", "Java开发", "EMP001", "10年经验", new Date(), new BigDecimal("1234.5432")),
             new DemoVO("李四", 30, false, "市场部",
                     "lisi@company.com", "13900139002",
-                    "上海市浦东新区", "市场总监", "EMP002", "资深"),
+                    "上海市浦东新区", "市场总监", "EMP002", "资深", null, new BigDecimal("0.004")),
             new DemoVO("王五", 28, true, "财务部",
                     "wangwu@company.com", "13700137003",
-                    "广州市天河区", "财务经理", "EMP003", "注册会计师")
+                    "广州市天河区", "财务经理", "EMP003", "注册会计师", null, null)
     );
 
     static final AtomicInteger batchCallCount = new AtomicInteger(0);
@@ -180,7 +182,7 @@ class ExportExcelIntegrationTest {
             long fromIndex = (pageableParam.getCurrent() - 1) * pageableParam.getSize();
             long toIndex = Math.min(fromIndex + pageableParam.getSize(), TEST_DATA.size());
             if (fromIndex >= TEST_DATA.size()) {
-                return new PageImpl<>(new ArrayList<>()) ;
+                return new PageImpl<>(new ArrayList<>());
             }
             return new PageImpl<>(TEST_DATA.subList((int) fromIndex, (int) toIndex));
         }
