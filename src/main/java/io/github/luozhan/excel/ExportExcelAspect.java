@@ -6,6 +6,8 @@ import io.github.luozhan.excel.style.AdaptiveWidthStyleStrategy;
 import org.apache.commons.codec.CharEncoding;
 import org.apache.fesod.sheet.ExcelWriter;
 import org.apache.fesod.sheet.FesodSheet;
+import org.apache.fesod.sheet.converters.Converter;
+import org.apache.fesod.sheet.write.builder.ExcelWriterBuilder;
 import org.apache.fesod.sheet.write.metadata.WriteSheet;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -15,7 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.Order;
-import org.springframework.core.convert.ConversionService;
 import org.springframework.format.support.FormattingConversionService;
 import org.springframework.lang.NonNull;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -49,6 +50,9 @@ public class ExportExcelAspect {
 
     @Resource
     private List<PageParamHandler<?>> pageParamHandlers;
+
+    @Resource
+    private List<Converter<?>> customConverters;
 
     @Around("@annotation(io.github.luozhan.excel.ExportExcel)")
     public Object around(ProceedingJoinPoint point) throws Throwable {
@@ -84,7 +88,11 @@ public class ExportExcelAspect {
             Object result = point.proceed();
             List<?> data = extractData(result);
             checkMaxSize(data.size(), maxSize);
-            FesodSheet.write(response.getOutputStream(), voClass).registerWriteHandler(new AdaptiveWidthStyleStrategy()).sheet(sheetName).doWrite(data);
+            ExcelWriterBuilder excelWriterBuilder = FesodSheet.write(response.getOutputStream(), voClass)
+                    .registerWriteHandler(new AdaptiveWidthStyleStrategy());
+            // 注入用户自定义数据转换器
+            customConverters.forEach(excelWriterBuilder::registerConverter);
+            excelWriterBuilder.sheet(sheetName).doWrite(data);
         }
 
         return null;
@@ -116,11 +124,17 @@ public class ExportExcelAspect {
     /**
      * 分批写excel
      */
-    private void writeInBatches(ProceedingJoinPoint point, PageParamProxy<?> pageParamProxy, int batchSize, long maxSize, Class<?> voClass, String sheetName, HttpServletResponse response) throws Throwable {
-        try (ExcelWriter excelWriter = FesodSheet.write(response.getOutputStream(), voClass)
-                .registerWriteHandler(new AdaptiveWidthStyleStrategy())
-                .build()) {
-
+    private void writeInBatches(ProceedingJoinPoint point,
+                                PageParamProxy<?> pageParamProxy,
+                                int batchSize, long maxSize,
+                                Class<?> voClass,
+                                String sheetName,
+                                HttpServletResponse response) throws Throwable {
+        ExcelWriterBuilder excelWriterBuilder = FesodSheet.write(response.getOutputStream(), voClass)
+                .registerWriteHandler(new AdaptiveWidthStyleStrategy());
+        // 注入用户自定义数据转换器
+        customConverters.forEach(excelWriterBuilder::registerConverter);
+        try (ExcelWriter excelWriter = excelWriterBuilder.build()) {
             WriteSheet writeSheet = FesodSheet.writerSheet(sheetName).build();
 
             int pageNum = 1;
