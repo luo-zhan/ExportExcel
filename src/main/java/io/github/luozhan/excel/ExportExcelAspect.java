@@ -15,6 +15,7 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.Order;
 import org.springframework.format.support.FormattingConversionService;
@@ -28,6 +29,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.lang.reflect.Method;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -42,7 +44,6 @@ import java.util.Objects;
 @Order(1)
 public class ExportExcelAspect {
     private static final Logger log = LoggerFactory.getLogger(ExportExcelAspect.class);
-    private static final String EXPORT_KEYWORDS = "export";
     private static final String FILE_NAME_KEYWORDS = "fileName";
 
     @Resource
@@ -52,7 +53,7 @@ public class ExportExcelAspect {
     private List<PageParamHandler<?>> pageParamHandlers;
 
     @Resource
-    private List<Converter<?>> customConverters;
+    private ObjectProvider<Converter<?>> converterProvider;
 
     @Around("@annotation(io.github.luozhan.excel.ExportExcel)")
     public Object around(ProceedingJoinPoint point) throws Throwable {
@@ -91,7 +92,7 @@ public class ExportExcelAspect {
             ExcelWriterBuilder excelWriterBuilder = FesodSheet.write(response.getOutputStream(), voClass)
                     .registerWriteHandler(new AdaptiveWidthStyleStrategy());
             // 注入用户自定义数据转换器
-            customConverters.forEach(excelWriterBuilder::registerConverter);
+            converterProvider.orderedStream().forEach(excelWriterBuilder::registerConverter);
             excelWriterBuilder.sheet(sheetName).doWrite(data);
         }
 
@@ -133,7 +134,7 @@ public class ExportExcelAspect {
         ExcelWriterBuilder excelWriterBuilder = FesodSheet.write(response.getOutputStream(), voClass)
                 .registerWriteHandler(new AdaptiveWidthStyleStrategy());
         // 注入用户自定义数据转换器
-        customConverters.forEach(excelWriterBuilder::registerConverter);
+        converterProvider.orderedStream().forEach(excelWriterBuilder::registerConverter);
         try (ExcelWriter excelWriter = excelWriterBuilder.build()) {
             WriteSheet writeSheet = FesodSheet.writerSheet(sheetName).build();
 
