@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.Order;
-import org.springframework.format.support.FormattingConversionService;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.lang.NonNull;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -29,7 +29,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.lang.reflect.Method;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -47,7 +46,7 @@ public class ExportExcelAspect {
     private static final String FILE_NAME_KEYWORDS = "fileName";
 
     @Resource
-    private FormattingConversionService conversionService;
+    private ConversionService mvcConversionService;
 
     @Resource
     private List<PageParamHandler<?>> pageParamHandlers;
@@ -208,10 +207,10 @@ public class ExportExcelAspect {
             return (List<?>) result;
         }
         Class<?> resultClass = result.getClass();
-        if (conversionService != null && conversionService.canConvert(resultClass, List.class)) {
-            return conversionService.convert(result, List.class);
+        if (mvcConversionService != null && mvcConversionService.canConvert(resultClass, List.class)) {
+            return mvcConversionService.convert(result, List.class);
         }
-        throw new IllegalArgumentException("不支持的返回类型: " + resultClass.getName() + "，请自定义转换器实现PageToListConverter接口，并注入spring容器");
+        throw new IllegalArgumentException("不支持的返回类型: " + resultClass.getName() + "，请自定义转换器实现ExcelDataConverter接口，并注入spring容器");
     }
 
     private boolean isExportRequest(HttpServletRequest request) {
