@@ -1,7 +1,7 @@
 package io.github.luozhan.excel;
 
-import io.github.luozhan.excel.page.PageParamHandler;
-import io.github.luozhan.excel.page.PageParamProxy;
+import io.github.luozhan.excel.paramhandle.req.PageParamHandler;
+import io.github.luozhan.excel.paramhandle.req.PageParamProxy;
 import io.github.luozhan.excel.style.AdaptiveWidthStyleStrategy;
 import org.apache.commons.codec.CharEncoding;
 import org.apache.fesod.sheet.ExcelWriter;

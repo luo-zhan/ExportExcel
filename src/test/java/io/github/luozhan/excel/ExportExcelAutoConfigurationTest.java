@@ -1,7 +1,7 @@
 package io.github.luozhan.excel;
 
-import io.github.luozhan.excel.converter.impl.MybatisPlusPageDataConverter;
-import io.github.luozhan.excel.converter.impl.SpringPageDataConverter;
+import io.github.luozhan.excel.paramhandle.rsp.impl.MybatisPlusPageDataConverter;
+import io.github.luozhan.excel.paramhandle.rsp.impl.SpringPageDataConverter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -9,7 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Configuration;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest(classes = ExportExcelAutoConfigurationTest.TestConfig.class)
 class ExportExcelAutoConfigurationTest {

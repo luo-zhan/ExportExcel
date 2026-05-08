@@ -1,7 +1,7 @@
-package io.github.luozhan.excel.page.impl;
+package io.github.luozhan.excel.paramhandle.req.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import io.github.luozhan.excel.page.PageParamHandler;
+import io.github.luozhan.excel.paramhandle.req.PageParamHandler;
 
 /**
  * Mybatis-Plus 分页对象处理器
