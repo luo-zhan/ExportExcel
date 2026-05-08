@@ -32,7 +32,7 @@
 <dependency>
     <groupId>io.github.luo-zhan</groupId>
     <artifactId>export-excel</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 </dependency>
 ```
 
