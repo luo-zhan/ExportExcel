@@ -8,7 +8,8 @@
 ![License](https://img.shields.io/github/license/luo-zhan/export-excel)
 ![Last Commit](https://img.shields.io/github/last-commit/luo-zhan/export-excel)
 
-基于 [Apache Fesod](https://github.com/apache/fesod) 的 Spring Boot Excel 导出组件，通过一个注解 `@ExportExcel` 即可为现有查询接口添加 Excel 导出能力，零侵入业务代码。
+基于 [Apache Fesod](https://github.com/apache/fesod) （EasyExcel的后继者）的 Spring Boot Excel 导出组件，通过一个注解
+`@ExportExcel` 即可为现有查询接口添加 Excel 导出能力，零侵入业务代码。
 
 ## 特性
 
@@ -141,6 +142,28 @@ public class MyPageParamHandler extends PageParamHandler<MyPageRequest> {
     }
 }
 ```
+
+## Excel转换格式
+
+Fesod默认的字段格式化逻辑如下：
+
+1. Date：yyyy-MM-dd hh:mm:ss
+2. Boolean: TRUE/FALSE
+3. BigDecimal、Number等: 正常展示数字
+
+除了Boolean，其他都符合正常习惯，组件提供更适合中国人的Boolean转换器[BooleanToChineseConverter](src/main/java/io/github/luozhan/excel/converter/BooleanToChineseConverter.java)
+，可将Boolean转换成`是/否`，将该类注册到spring容器即可生效
+
+```java
+
+@Bean
+public BooleanToChineseConverter booleanToChineseConverter() {
+    return new BooleanToChineseConverter();
+}
+```
+
+如果你的项目对java类型转换成表格内容有自定义的统一格式化逻辑，也可以参照BooleanToChineseConverter写自定义转换器注册到spring容器
+
 ## 试用
 下载源码，找到`SampleApplication.java`运行起来，启动并访问该类中的接口即可
 ```
