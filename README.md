@@ -170,6 +170,10 @@ public BooleanToChineseConverter booleanToChineseConverter() {
 http://localhost:8080/page/export
 ```
 
+## 说明
+
+本组件采用自定义HandlerMapping+注解AOP方式实现，性能占用极低，可放心食用
+
 ## 许可证
 
 Apache License 2.0
