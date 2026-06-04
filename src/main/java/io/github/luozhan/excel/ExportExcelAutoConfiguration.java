@@ -4,12 +4,11 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.github.luozhan.excel.paramhandle.req.impl.MybatisPlusPageParamHandler;
 import io.github.luozhan.excel.paramhandle.rsp.impl.MybatisPlusPageDataConverter;
 import io.github.luozhan.excel.paramhandle.rsp.impl.SpringPageDataConverter;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.Ordered;
 import org.springframework.data.domain.Page;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
@@ -22,6 +21,14 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 @AutoConfiguration
 @Import(ExportExcelAspect.class)
 public class ExportExcelAutoConfiguration {
+
+    /**
+     * 注册导出tHandlerMapping：识别 /xxx/export 请求并映射到查询接口
+     */
+    @Bean
+    public ExportHandlerMapping exportFallbackHandlerMapping(@Qualifier("requestMappingHandlerMapping") RequestMappingHandlerMapping handlerMapping) {
+        return new ExportHandlerMapping(handlerMapping);
+    }
 
     @Bean
     @ConditionalOnClass(Page.class)
@@ -41,13 +48,4 @@ public class ExportExcelAutoConfiguration {
         return new MybatisPlusPageParamHandler();
     }
 
-    @Bean
-    public FilterRegistrationBean<ExportExcelFilter> exportExcelFilterRegistration(RequestMappingHandlerMapping handlerMapping) {
-        FilterRegistrationBean<ExportExcelFilter> registration = new FilterRegistrationBean<>();
-        registration.setFilter(new ExportExcelFilter(handlerMapping));
-        registration.addUrlPatterns("/*");
-        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
-        registration.setName("exportExcelFilter");
-        return registration;
-    }
 }

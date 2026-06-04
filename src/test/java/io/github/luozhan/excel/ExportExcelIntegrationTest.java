@@ -1,7 +1,7 @@
 package io.github.luozhan.excel;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.github.luozhan.excel.sample.model.DemoVO;
+import io.github.luozhan.excel.sample.model.TestPage;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
@@ -177,7 +177,7 @@ class ExportExcelIntegrationTest {
 
         @GetMapping("/batch")
         @ExportExcel(fileName = "分批导出", batchSize = 2)
-        public Page<DemoVO> batch(IPage<?> pageableParam) {
+        public Page<DemoVO> batch(TestPage<DemoVO> pageableParam) {
             batchCallCount.incrementAndGet();
             long fromIndex = (pageableParam.getCurrent() - 1) * pageableParam.getSize();
             long toIndex = Math.min(fromIndex + pageableParam.getSize(), TEST_DATA.size());

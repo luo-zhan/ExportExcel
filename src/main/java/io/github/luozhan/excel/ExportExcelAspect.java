@@ -49,7 +49,7 @@ public class ExportExcelAspect {
     private ConversionService mvcConversionService;
 
     @Resource
-    private List<PageParamHandler<?>> pageParamHandlers;
+    private ObjectProvider<PageParamHandler<?>> pageParamHandlers;
 
     @Resource
     private ObjectProvider<Converter<?>> converterProvider;
@@ -91,7 +91,7 @@ public class ExportExcelAspect {
             ExcelWriterBuilder excelWriterBuilder = FesodSheet.write(response.getOutputStream(), voClass)
                     .registerWriteHandler(new AdaptiveWidthStyleStrategy());
             // 注入用户自定义数据转换器
-            converterProvider.orderedStream().forEach(excelWriterBuilder::registerConverter);
+            converterProvider.stream().forEach(excelWriterBuilder::registerConverter);
             excelWriterBuilder.sheet(sheetName).doWrite(data);
         }
 
@@ -181,9 +181,6 @@ public class ExportExcelAspect {
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
     private PageParamProxy<?> findPageableParam(@NonNull Object[] args) {
-        if (pageParamHandlers == null) {
-            return null;
-        }
         for (Object arg : args) {
             if (arg == null) {
                 continue;
@@ -214,7 +211,7 @@ public class ExportExcelAspect {
     }
 
     private boolean isExportRequest(HttpServletRequest request) {
-        return Boolean.TRUE.equals(request.getAttribute(ExportExcelFilter.EXPORT_FLAG_ATTRIBUTE));
+        return Boolean.TRUE.equals(request.getAttribute(ExportHandlerMapping.EXPORT_FLAG_ATTRIBUTE));
     }
 
 }
