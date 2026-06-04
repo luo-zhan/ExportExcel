@@ -164,6 +164,7 @@ public class ExportExcelAspect {
                     pageNum++;
                 }
             } catch (Exception e) {
+                log.warn("导出数据时发生异常", e);
                 // 文件已经开始下载，没法撤回，只能在excel中提示错误信息
                 excelWriter.write(Collections.singleton(Collections.singleton("⚠️" + e.getMessage() + "，已终止下载，该数据不完整！")), writeSheet);
             }
@@ -205,7 +206,12 @@ public class ExportExcelAspect {
         }
         Class<?> resultClass = result.getClass();
         if (mvcConversionService != null && mvcConversionService.canConvert(resultClass, List.class)) {
-            return mvcConversionService.convert(result, List.class);
+            List<?> convert = mvcConversionService.convert(result, List.class);
+            if (convert != null && !convert.isEmpty() && convert.get(0).getClass().equals(resultClass)) {
+                // 走的是spring官方的ObjectToCollectionConvert，没有自定义的转换器，报错
+                throw new IllegalArgumentException("不支持的返回类型: " + resultClass.getName() + "，请自定义转换器实现ExcelDataConverter接口，并注入spring容器");
+            }
+            return convert;
         }
         throw new IllegalArgumentException("不支持的返回类型: " + resultClass.getName() + "，请自定义转换器实现ExcelDataConverter接口，并注入spring容器");
     }
