@@ -6,7 +6,7 @@
 
     <groupId>io.github.luo-zhan</groupId>
     <artifactId>export-excel</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
 
     <name>ExportExcel</name>
     <description>Excel export component based on Apache Fesod</description>
