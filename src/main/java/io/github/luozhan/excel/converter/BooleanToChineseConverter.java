@@ -3,6 +3,7 @@ package io.github.luozhan.excel.converter;
 import org.apache.fesod.sheet.converters.ReadConverterContext;
 import org.apache.fesod.sheet.converters.WriteConverterContext;
 import org.apache.fesod.sheet.converters.booleanconverter.BooleanStringConverter;
+import org.apache.fesod.sheet.enums.CellDataTypeEnum;
 import org.apache.fesod.sheet.metadata.data.WriteCellData;
 
 /**
@@ -16,6 +17,12 @@ public class BooleanToChineseConverter extends BooleanStringConverter {
     private final String trueFlag = "是";
     private final String falseFlag = "否";
 
+    @Override
+    public CellDataTypeEnum supportExcelTypeKey() {
+        // 返回null表示匹配所有Excel类型
+        // 这样无论Fesod默认选择什么类型，都会使用这个转换器
+        return null;
+    }
     /**
      * 读取Excel：「是/否」转Boolean
      */

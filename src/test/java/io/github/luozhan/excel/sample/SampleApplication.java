@@ -1,5 +1,6 @@
 package io.github.luozhan.excel.sample;
 
+import io.github.luozhan.excel.converter.BooleanToChineseConverter;
 import io.github.luozhan.excel.paramhandle.req.PageParamHandler;
 import io.github.luozhan.excel.paramhandle.rsp.ExcelDataConverter;
 import io.github.luozhan.excel.sample.model.MyPage;
@@ -24,6 +25,14 @@ public class SampleApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(SampleApplication.class, args);
+    }
+
+    /**
+     * 注册布尔转换器
+     */
+    @Bean
+    public BooleanToChineseConverter booleanToChineseConverter() {
+        return new BooleanToChineseConverter();
     }
 
     /**
@@ -80,7 +89,6 @@ public class SampleApplication {
     }
 
 
-
     @RestControllerAdvice
     public static class GlobalExceptionHandler {
         /**
@@ -90,6 +98,7 @@ public class SampleApplication {
         public Map<String, Object> handleRuntimeException(RuntimeException e, HttpServletRequest request) {
             return getErrorMap(500, "服务器异常：" + e.getMessage(), request.getRequestURI());
         }
+
         private Map<String, Object> getErrorMap(int code, String msg, String path) {
             Map<String, Object> result = new HashMap<>();
             result.put("code", code);      // 状态码
@@ -98,4 +107,5 @@ public class SampleApplication {
             return result;
         }
     }
+
 }
