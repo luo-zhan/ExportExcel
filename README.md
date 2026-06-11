@@ -89,14 +89,60 @@ GET /list/export?fileName=员工数据报表
 
 `@ExportExcel` 注解支持以下参数：
 
-| 参数 | 说明                             | 默认值        |
-|------|--------------------------------|------------|
-| `fileName` | 导出文件名（会被 URL 参数 `fileName` 覆盖） | `"导出数据"`   |
-| `sheetName` | Sheet 名称                       | `"sheet1"` |
-| `limit` | 导出数据量上限，超过则终止导出                | `10000`    |
-| `batchSize` | 分批查询时每批的数据量（仅在方法有分页参数时生效）      | `1000`     |
+| 参数          | 说明                               | 默认值        |
+|-------------|----------------------------------|------------|
+| `fileName`  | 导出文件名（会被 URL 参数 `fileName` 覆盖）   | `"导出数据"`   |
+| `sheetName` | Sheet 名称                         | `"sheet1"` |
+| `limit`     | 导出数据量上限，超过则终止导出                  | `10000`    |
+| `batchSize` | 分批查询时每批的数据量（仅在方法有分页参数或启用游标分页时生效） | `1000`     |
 
-> 注：数据量超过1万容易产生深分页问题，建议这种场景用游标查询单独实现导出
+> 注：数据量超过1万容易产生深分页问题，建议启用下面的「游标分页」
+
+## 游标分页（推荐大数据量场景）
+
+传统偏移量分页（`LIMIT x OFFSET y`）在深分页场景下性能极差。本组件提供了一个完全透明、零侵入业务代码的游标分页方案：**只需在
+VO 某个字段上加 `@CursorField`**。
+
+### 启用方式
+
+```java
+public class UserVO {
+
+    @ExcelProperty("用户ID")
+    @CursorField                 // value 留空：使用字段名驼峰转下划线（user_id）作为数据库列名
+    private Long userId;
+
+    @ExcelProperty("姓名")
+    private String name;
+}
+```
+
+Controller 方法无需任何特殊代码，`@ExportExcel` 检测到 VO 上存在 `@CursorField` 后会自动启用游标分页。MyBatis 拦截器会透明地将
+SQL 改造为：
+
+```sql
+SELECT ... FROM user WHERE user_id > #{lastId} ORDER BY user_id ASC LIMIT 1000
+```
+
+### 指定数据库列名 / 表别名前缀
+
+当 VO 字段名与 DB 列名不一致，或多表查询需要表别名时，通过 `value` 显式指定：
+
+```java
+public class UserVO {
+    // VO 字段名是 id，但多表查询需要 t.id 避免歧义
+    @CursorField("t.id")
+    private Long id;
+}
+```
+
+### 注意事项
+
+- VO 中最多只能存在一个 `@CursorField`，多个会报错
+- 游标字段需为可比较、有序且有索引的列（如 Long、有序字符串、时间类型等）
+- 启用后原查询的 `ORDER BY` 会被覆盖为按游标字段升序
+- 仅在导出场景生效，普通 API 调用零影响
+- 需项目引入 MyBatis（`SqlSessionFactory`）且 classpath 中存在 JSqlParser，否则拦截器不被装配，会回退到传统分页
 ## 支持的返回类型
 
 组件会自动从方法返回值中提取数据，支持以下类型：

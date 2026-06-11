@@ -1,6 +1,7 @@
 package io.github.luozhan.excel.sample;
 
 import io.github.luozhan.excel.converter.BooleanToChineseConverter;
+import io.github.luozhan.excel.cursor.CursorPaginationInterceptor;
 import io.github.luozhan.excel.paramhandle.req.PageParamHandler;
 import io.github.luozhan.excel.paramhandle.rsp.ExcelDataConverter;
 import io.github.luozhan.excel.sample.model.MyPage;
@@ -33,6 +34,15 @@ public class SampleApplication {
     @Bean
     public BooleanToChineseConverter booleanToChineseConverter() {
         return new BooleanToChineseConverter();
+    }
+
+    /**
+     * 显式注册游标分页拦截器，用于演示游标导出流程。
+     * 真实项目中只要存在 MyBatis SqlSessionFactory，自动配置会自动注册该 Bean，无需手动声明。
+     */
+    @Bean
+    public CursorPaginationInterceptor cursorPaginationInterceptor() {
+        return new CursorPaginationInterceptor();
     }
 
     /**

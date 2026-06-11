@@ -1,6 +1,5 @@
-package io.github.luozhan.excel.sample.model;
+package io.github.luozhan.excel.integration;
 
-import io.github.luozhan.excel.cursor.CursorField;
 import lombok.*;
 import org.apache.fesod.sheet.annotation.ExcelProperty;
 
@@ -8,20 +7,17 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
- * 员工信息示例 VO。
+ * 集成测试专用 VO（不含 @CursorField，避免触发游标分页改写）。
  * <p>
- * 作为 Sample 与集成测试的载体对象，演示导出列与游标字段。
- * <ul>
- *   <li>{@code @ExcelProperty} 描述列表头；</li>
- *   <li>{@link CursorField} 标注 {@code employeeNo} 字段为游标键，用于验证游标分页。</li>
- * </ul>
+ * 字段定义对齐 {@code DemoVO}，但刻意去掉游标注解，
+ * 用于覆盖传统偏移量分页 / 全量导出 / limit 超限等场景。
  */
 @Setter
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
-public class DemoVO {
+public class SimpleDemoVO {
 
     @ExcelProperty("员工姓名")
     private String name;
@@ -47,11 +43,7 @@ public class DemoVO {
     @ExcelProperty("职位")
     private String position;
 
-    /**
-     * 员工唯一编号，同时作为游标分页的键。
-     */
     @ExcelProperty("工号")
-    @CursorField("employeeNo")
     private String employeeNo;
 
     @ExcelProperty("个人简介")

@@ -1,5 +1,6 @@
 package io.github.luozhan.excel;
 
+import io.github.luozhan.excel.cursor.ExcelContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
@@ -21,7 +22,6 @@ public class ExportHandlerMapping implements HandlerMapping {
 
     private static final Logger log = LoggerFactory.getLogger(ExportHandlerMapping.class);
     private static final String EXPORT_SUFFIX = "/export";
-    public static final String EXPORT_FLAG_ATTRIBUTE = "X-Export-Request";
 
     private final RequestMappingHandlerMapping requestMappingHandlerMapping;
 
@@ -52,8 +52,8 @@ public class ExportHandlerMapping implements HandlerMapping {
             return null;
         }
 
-        // 设置导出标记，后续AOP通过这个属性判断
-        request.setAttribute(EXPORT_FLAG_ATTRIBUTE, Boolean.TRUE);
+        // 激活导出，后续AOP通过这个状态判断
+        ExcelContext.active();
         log.info("📤 导出请求转发成功：{} → 映射到原生接口 {}", path, originalPath);
         return chain;
     }
