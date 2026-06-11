@@ -1,6 +1,7 @@
 package io.github.luozhan.excel.cursor;
 
 import java.lang.reflect.Field;
+import java.util.List;
 
 /**
  * 游标分页元数据
@@ -51,11 +52,25 @@ public final class CursorMetadata {
     }
 
     /**
+     * 判断给定的 lastIds 数组中所有元素是否都非 null。
+     * <p>
+     * 用于 left join 场景：当批次末尾记录的 tie-breaker 字段可能为 null 时，
+     * 向后搜索直到找到一条所有游标字段都非 null 的记录。
+     */
+    public boolean isAllNonNull(Object[] lastIds) {
+        if (lastIds == null) return false;
+        for (Object id : lastIds) {
+            if (id == null) return false;
+        }
+        return true;
+    }
+
+    /**
      * 从一条 VO 记录中按 {@link CursorField#order()} 顺序提取所有游标字段的值，
      * 用作下一批查询的 lastIds（元组比较的右值）。
      *
      * @param record 上一批的最后一条记录（不可为 null）
-     * @return 与 {@link #dbColumns()} 等长的游标值数组，任一字段为 null 时抛出异常
+     * @return 与 {@link #dbColumns()} 等长的游标值数组，允许 null 值
      */
     public Object[] extractLastIds(Object record) {
         return extractLastIds(record, 0);
@@ -69,7 +84,7 @@ public final class CursorMetadata {
      *
      * @param record     上一批的最后一条记录（不可为 null）
      * @param startIndex 起始索引（0-based），从该索引开始到末尾的字段参与提取
-     * @return 游标值数组，任一字段为 null 时抛出异常
+     * @return 游标值数组，允许 null 值
      */
     public Object[] extractLastIds(Object record, int startIndex) {
         if (startIndex < 0 || startIndex >= voFields.length) {
@@ -81,12 +96,44 @@ public final class CursorMetadata {
             Field field = voFields[startIndex + i];
             try {
                 Object value = field.get(record);
-                if (value == null) {
-                    throw new IllegalArgumentException("游标字段 '" + field.getName() + "' 的值为null，无法用于游标分页");
-                }
                 lastIds[i] = value;
             } catch (IllegalAccessException e) {
                 throw new RuntimeException("读取游标字段 '" + field.getName() + "' 失败", e);
+            }
+        }
+        return lastIds;
+    }
+
+    /**
+     * 从一批 VO 记录中提取各字段最后一条非空值。
+     * <p>
+     * 每个字段独立地从后向前搜索，找到该字段在批次中最后一条非 null 记录的值。
+     * left join 场景下，右表无匹配时 tie-breaker 字段可能为 null，
+     * 此时该字段取前面记录的非 null 值，而非整体跳过该批次。
+     *
+     * @param data       当前批次数据
+     * @param startIndex 起始索引（来自 CursorState）
+     * @return 游标值数组，任一字段在当前批次全为 null 时对应位置为 null
+     */
+    public Object[] extractLastIdsFromBatch(List<?> data, int startIndex) {
+        if (startIndex < 0 || startIndex >= voFields.length) {
+            throw new IllegalArgumentException("startIndex 越界: " + startIndex + ", 总字段数: " + voFields.length);
+        }
+        int len = voFields.length - startIndex;
+        Object[] lastIds = new Object[len];
+        for (int fieldIdx = 0; fieldIdx < len; fieldIdx++) {
+            Field field = voFields[startIndex + fieldIdx];
+            // 从后向前搜索该字段的非 null 值
+            for (int i = data.size() - 1; i >= 0; i--) {
+                try {
+                    Object value = field.get(data.get(i));
+                    if (value != null) {
+                        lastIds[fieldIdx] = value;
+                        break;
+                    }
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException("读取游标字段 '" + field.getName() + "' 失败", e);
+                }
             }
         }
         return lastIds;

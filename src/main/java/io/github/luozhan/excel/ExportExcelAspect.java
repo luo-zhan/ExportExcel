@@ -169,10 +169,10 @@ public class ExportExcelAspect {
                         break;
                     }
                     CursorState state = ExcelContext.get();
-                    Object[] lastIds = metadata.extractLastIds(data.get(data.size() - 1), state.getStartIndex());
+                    Object[] lastIds = metadata.extractLastIdsFromBatch(data, state.getStartIndex());
                     ExcelContext.updateLastIds(lastIds);
                     if (log.isDebugEnabled()) {
-                        log.debug("游标分页导出进度：已写入{}条，当前lastIds={}", totalCount, Arrays.toString(lastIds));
+                        log.debug("游标分页导出进度：已写入{}条，当前lastIds={}", totalCount, Arrays.toString(ExcelContext.get().getLastIds()));
                     }
                 }
                 log.info("游标分页导出完成，总数据量：{}条", totalCount);

@@ -94,10 +94,34 @@ public class CursorPaginationInterceptor implements Interceptor {
 
         String[] effectiveDbColumns = Arrays.copyOfRange(state.getDbColumns(), startIndex, state.getDbColumns().length);
         Object[] lastIds = state.getLastIds();
-        Object[] effectiveLastIds = isFirstQuery ? null : lastIds;
+        Object[] effectiveLastIds = isFirstQuery ? null : Arrays.copyOfRange(lastIds, startIndex, lastIds.length);
 
-        RewriteResult result = rebuildSqlWithMeta(originalSql, effectiveDbColumns, effectiveLastIds,
-                state.getBatchSize(), desc, isFirstQuery);
+        // 过滤掉 null 字段：left join 场景下 tie-breaker 可能为 null，忽略该列的查询条件
+        // 首次查询时不过滤，保持完整字段列表以生成 ORDER BY + LIMIT
+        String[] finalDbColumns;
+        Object[] finalLastIds;
+        boolean hasNonNullCursor;
+        if (isFirstQuery) {
+            finalDbColumns = effectiveDbColumns;
+            finalLastIds = null;
+            hasNonNullCursor = false;
+        } else {
+            List<String> nonNullDbCols = new ArrayList<>();
+            List<Object> nonNullLastIds = new ArrayList<>();
+            for (int i = 0; i < effectiveLastIds.length; i++) {
+                if (effectiveLastIds[i] != null) {
+                    nonNullDbCols.add(effectiveDbColumns[i]);
+                    nonNullLastIds.add(effectiveLastIds[i]);
+                }
+            }
+            hasNonNullCursor = !nonNullDbCols.isEmpty();
+            finalDbColumns = nonNullDbCols.toArray(new String[0]);
+            finalLastIds = nonNullLastIds.toArray(new Object[0]);
+        }
+
+        RewriteResult result = rebuildSqlWithMeta(originalSql,
+                finalDbColumns, finalLastIds,
+                state.getBatchSize(), desc, !hasNonNullCursor);
 
         if (!originalSql.equals(result.sql)) {
             BoundSql newBoundSql = buildNewBoundSql(ms, boundSql, result);
@@ -108,9 +132,9 @@ public class CursorPaginationInterceptor implements Interceptor {
             if (log.isDebugEnabled()) {
                 String op = desc ? "<" : ">";
                 log.debug("游标分页SQL改造完成，cursor=({}) {} ({}), batch={}",
-                        String.join(",", effectiveDbColumns),
+                        String.join(",", finalDbColumns),
                         op,
-                        joinLastIds(effectiveLastIds != null ? effectiveLastIds : new Object[0]),
+                        joinLastIds(finalLastIds != null ? finalLastIds : new Object[0]),
                         state.getBatchSize());
                 log.debug("原始SQL: {}", originalSql);
                 log.debug("改造SQL: {}", result.sql);

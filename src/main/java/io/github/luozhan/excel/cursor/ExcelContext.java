@@ -54,7 +54,9 @@ public class ExcelContext {
 
     /**
      * 更新 lastIds（每批查询后由AOP调用）。
-     * <p>支持多字段：传入数组长度必须与 {@link CursorState#getDbColumns()} 一致。
+     * <p>
+     * 只更新非 null 的元素，null 位置保留该字段之前的值。
+     * left join 场景下 tie-breaker 字段可能为 null，此时沿用上一批次该字段的有效值。
      */
     public static void updateLastIds(Object[] lastIds) {
         CursorState state = CURSOR_CONTEXT.get();
@@ -63,7 +65,12 @@ public class ExcelContext {
             if (lastIds == null || lastIds.length != expectedLen) {
                 throw new IllegalArgumentException("lastIds 长度必须为 dbColumns.length - startIndex = " + expectedLen);
             }
-            state.setLastIds(lastIds);
+            Object[] current = state.getLastIds();
+            for (int i = 0; i < lastIds.length; i++) {
+                if (lastIds[i] != null) {
+                    current[state.startIndex + i] = lastIds[i];
+                }
+            }
         }
     }
 

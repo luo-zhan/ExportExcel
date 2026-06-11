@@ -8,6 +8,7 @@ import org.apache.fesod.sheet.metadata.data.WriteCellData;
 
 /**
  * Boolean->是/否 转换器
+ * 如果不使用该转换器，框架会默认转换成TRUE/FALSE
  *
  * @author luozhan
  * @since 2026/5/8
@@ -20,7 +21,6 @@ public class BooleanToChineseConverter extends BooleanStringConverter {
     @Override
     public CellDataTypeEnum supportExcelTypeKey() {
         // 返回null表示匹配所有Excel类型
-        // 这样无论Fesod默认选择什么类型，都会使用这个转换器
         return null;
     }
     /**
