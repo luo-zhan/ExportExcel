@@ -52,20 +52,6 @@ public final class CursorMetadata {
     }
 
     /**
-     * 判断给定的 lastIds 数组中所有元素是否都非 null。
-     * <p>
-     * 用于 left join 场景：当批次末尾记录的 tie-breaker 字段可能为 null 时，
-     * 向后搜索直到找到一条所有游标字段都非 null 的记录。
-     */
-    public boolean isAllNonNull(Object[] lastIds) {
-        if (lastIds == null) return false;
-        for (Object id : lastIds) {
-            if (id == null) return false;
-        }
-        return true;
-    }
-
-    /**
      * 从一条 VO 记录中按 {@link CursorField#order()} 顺序提取所有游标字段的值，
      * 用作下一批查询的 lastIds（元组比较的右值）。
      *

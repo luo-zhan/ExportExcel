@@ -4,6 +4,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -15,6 +17,14 @@ class CursorPaginationInterceptorTest {
 
     private final CursorPaginationInterceptor interceptor = new CursorPaginationInterceptor();
 
+    private String rewrite(String sql, String dbColumn, Object lastId, int batchSize) {
+        return interceptor.rebuildSqlWithMeta(sql, new String[]{dbColumn}, new Object[]{lastId}, batchSize).sql;
+    }
+
+    private String rewrite(String sql, String[] dbColumns, Object[] lastIds, int batchSize) {
+        return interceptor.rebuildSqlWithMeta(sql, dbColumns, lastIds, batchSize).sql;
+    }
+
     @Nested
     @DisplayName("简单查询")
     class SimpleQuery {
@@ -23,7 +33,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("无WHERE无ORDER BY无LIMIT")
         void shouldAddWhereAndOrderByAndLimit() {
             String sql = "SELECT * FROM user";
-            String result = interceptor.rebuildSql(sql, "id", 0, 1000);
+            String result = rewrite(sql, "id", 0, 1000);
             assertEquals("SELECT * FROM user WHERE id > 0 ORDER BY id ASC LIMIT 1000", result);
         }
 
@@ -31,7 +41,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("有LIMIT无WHERE")
         void shouldStripLimitAndAddCursorCondition() {
             String sql = "SELECT * FROM user LIMIT 10";
-            String result = interceptor.rebuildSql(sql, "id", 100, 500);
+            String result = rewrite(sql, "id", 100, 500);
             assertEquals("SELECT * FROM user WHERE id > 100 ORDER BY id ASC LIMIT 500", result);
         }
 
@@ -39,7 +49,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("有LIMIT和OFFSET")
         void shouldStripLimitOffset() {
             String sql = "SELECT * FROM user LIMIT 10 OFFSET 20";
-            String result = interceptor.rebuildSql(sql, "id", 200, 1000);
+            String result = rewrite(sql, "id", 200, 1000);
             assertEquals("SELECT * FROM user WHERE id > 200 ORDER BY id ASC LIMIT 1000", result);
         }
 
@@ -47,7 +57,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("MySQL风格LIMIT x,y")
         void shouldStripMySqlStyleLimit() {
             String sql = "SELECT * FROM user LIMIT 20, 10";
-            String result = interceptor.rebuildSql(sql, "id", 300, 1000);
+            String result = rewrite(sql, "id", 300, 1000);
             assertEquals("SELECT * FROM user WHERE id > 300 ORDER BY id ASC LIMIT 1000", result);
         }
     }
@@ -60,7 +70,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("已有WHERE条件追加AND")
         void shouldAppendAndCondition() {
             String sql = "SELECT * FROM user WHERE status = 1";
-            String result = interceptor.rebuildSql(sql, "id", 500, 1000);
+            String result = rewrite(sql, "id", 500, 1000);
             assertEquals("SELECT * FROM user WHERE status = 1 AND id > 500 ORDER BY id ASC LIMIT 1000", result);
         }
 
@@ -68,7 +78,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("WHERE + ORDER BY + LIMIT全部替换")
         void shouldReplaceOrderByAndLimit() {
             String sql = "SELECT * FROM user WHERE status = 1 ORDER BY create_time DESC LIMIT 10 OFFSET 0";
-            String result = interceptor.rebuildSql(sql, "idName", 1000, 500);
+            String result = rewrite(sql, "idName", 1000, 500);
             assertEquals("SELECT * FROM user WHERE status = 1 AND id_name > 1000 ORDER BY id_name ASC LIMIT 500", result);
         }
 
@@ -76,7 +86,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("复杂WHERE条件")
         void shouldHandleComplexWhereCondition() {
             String sql = "SELECT * FROM user WHERE status = 1 AND age > 18 AND name LIKE '%test%' ORDER BY id LIMIT 20";
-            String result = interceptor.rebuildSql(sql, "id", 99, 1000);
+            String result = rewrite(sql, "id", 99, 1000);
             assertEquals("SELECT * FROM user WHERE status = 1 AND age > 18 AND name LIKE '%test%' AND id > 99 ORDER BY id ASC LIMIT 1000", result);
         }
     }
@@ -89,7 +99,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("JOIN查询使用表别名前缀")
         void shouldSupportTableAlias() {
             String sql = "SELECT t.*, d.name FROM user t JOIN dept d ON t.dept_id = d.id WHERE t.status = 1 ORDER BY t.create_time LIMIT 10";
-            String result = interceptor.rebuildSql(sql, "t.id", 500, 1000);
+            String result = rewrite(sql, "t.id", 500, 1000);
             assertEquals("SELECT t.*, d.name FROM user t JOIN dept d ON t.dept_id = d.id WHERE t.status = 1 AND t.id > 500 ORDER BY t.id ASC LIMIT 1000", result);
         }
 
@@ -97,7 +107,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("JOIN无WHERE条件")
         void shouldAddWhereInJoinQuery() {
             String sql = "SELECT t.* FROM user t LEFT JOIN dept d ON t.dept_id = d.id";
-            String result = interceptor.rebuildSql(sql, "t.id", 0, 2000);
+            String result = rewrite(sql, "t.id", 0, 2000);
             assertEquals("SELECT t.* FROM user t LEFT JOIN dept d ON t.dept_id = d.id WHERE t.id > 0 ORDER BY t.id ASC LIMIT 2000", result);
         }
     }
@@ -110,7 +120,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("不影响子查询中的WHERE")
         void shouldNotAffectSubQueryWhere() {
             String sql = "SELECT * FROM (SELECT * FROM user WHERE id > 0) t LIMIT 10";
-            String result = interceptor.rebuildSql(sql, "t.id", 100, 1000);
+            String result = rewrite(sql, "t.id", 100, 1000);
             assertEquals("SELECT * FROM (SELECT * FROM user WHERE id > 0) t WHERE t.id > 100 ORDER BY t.id ASC LIMIT 1000", result);
         }
 
@@ -118,7 +128,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("不影响子查询中的ORDER BY")
         void shouldNotAffectSubQueryOrderBy() {
             String sql = "SELECT * FROM (SELECT * FROM user ORDER BY create_time) t WHERE t.status = 1 ORDER BY t.id LIMIT 10";
-            String result = interceptor.rebuildSql(sql, "t.id", 200, 500);
+            String result = rewrite(sql, "t.id", 200, 500);
             assertEquals("SELECT * FROM (SELECT * FROM user ORDER BY create_time) t WHERE t.status = 1 AND t.id > 200 ORDER BY t.id ASC LIMIT 500", result);
         }
     }
@@ -131,7 +141,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("WHERE在GROUP BY之前插入游标条件")
         void shouldInsertBeforeGroupBy() {
             String sql = "SELECT dept, COUNT(*) as cnt FROM user WHERE status = 1 GROUP BY dept";
-            String result = interceptor.rebuildSql(sql, "id", 100, 1000);
+            String result = rewrite(sql, "id", 100, 1000);
             assertEquals("SELECT dept, COUNT(*) AS cnt FROM user WHERE status = 1 AND id > 100 GROUP BY dept ORDER BY id ASC LIMIT 1000", result);
         }
 
@@ -139,7 +149,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("无WHERE时在GROUP BY之前插入")
         void shouldAddWhereBeforeGroupBy() {
             String sql = "SELECT dept, COUNT(*) FROM user GROUP BY dept HAVING COUNT(*) > 5";
-            String result = interceptor.rebuildSql(sql, "id", 0, 1000);
+            String result = rewrite(sql, "id", 0, 1000);
             assertEquals("SELECT dept, COUNT(*) FROM user WHERE id > 0 GROUP BY dept HAVING COUNT(*) > 5 ORDER BY id ASC LIMIT 1000", result);
         }
     }
@@ -152,16 +162,27 @@ class CursorPaginationInterceptorTest {
         @DisplayName("lastId为0（首次查询）")
         void shouldWorkWithZeroLastId() {
             String sql = "SELECT * FROM user WHERE status = 1";
-            String result = interceptor.rebuildSql(sql, "id", 0, 1000);
+            String result = rewrite(sql, "id", 0, 1000);
             assertEquals("SELECT * FROM user WHERE status = 1 AND id > 0 ORDER BY id ASC LIMIT 1000", result);
         }
 
         @Test
-        @DisplayName("lastId为大数值")
-        void shouldWorkWithLargeLastId() {
+        @DisplayName("lastId为非整数Number时保持精度")
+        void shouldPreserveNonIntegerNumber() {
             String sql = "SELECT * FROM user";
-            String result = interceptor.rebuildSql(sql, "id", 9999999L, 500);
-            assertEquals("SELECT * FROM user WHERE id > 9999999 ORDER BY id ASC LIMIT 500", result);
+            String result = rewrite(sql, "id", new BigDecimal("123.45"), 500);
+            assertEquals("SELECT * FROM user WHERE id > 123.45 ORDER BY id ASC LIMIT 500", result);
+        }
+
+        @Test
+        @DisplayName("多字段lastId含非整数Number时保持精度")
+        void shouldPreserveNonIntegerNumberInTuple() {
+            String sql = "SELECT * FROM demo";
+            String result = rewrite(sql,
+                    new String[]{"score", "id"},
+                    new Object[]{new BigDecimal("98.50"), 42L},
+                    20);
+            assertEquals("SELECT * FROM demo WHERE (score, id) > (98.50, 42) ORDER BY score ASC, id ASC LIMIT 20", result);
         }
     }
 
@@ -173,7 +194,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("小写关键字")
         void shouldHandleLowerCase() {
             String sql = "select * from user where status = 1 order by id limit 10";
-            String result = interceptor.rebuildSql(sql, "id", 100, 1000);
+            String result = rewrite(sql, "id", 100, 1000);
             assertEquals("SELECT * FROM user WHERE status = 1 AND id > 100 ORDER BY id ASC LIMIT 1000", result);
         }
 
@@ -181,7 +202,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("混合大小写")
         void shouldHandleMixedCase() {
             String sql = "Select * From user Where status = 1 Order By id Limit 10";
-            String result = interceptor.rebuildSql(sql, "id", 100, 1000);
+            String result = rewrite(sql, "id", 100, 1000);
             assertEquals("SELECT * FROM user WHERE status = 1 AND id > 100 ORDER BY id ASC LIMIT 1000", result);
         }
     }
@@ -203,6 +224,15 @@ class CursorPaginationInterceptorTest {
         @DisplayName("LIMIT + OFFSET 均带占位符时计数为 2")
         void shouldCountLimitAndOffsetPlaceholders() {
             String sql = "SELECT * FROM user LIMIT ? OFFSET ?";
+            CursorPaginationInterceptor.RewriteResult r =
+                    interceptor.rebuildSqlWithMeta(sql, new String[]{"id"}, new Object[]{0}, 1000);
+            assertEquals(2, r.removedPlaceholders);
+        }
+
+        @Test
+        @DisplayName("MySQL 风格 LIMIT ?, ? 计数为 2")
+        void shouldCountMySqlStyleLimitPlaceholders() {
+            String sql = "SELECT * FROM user LIMIT ?, ?";
             CursorPaginationInterceptor.RewriteResult r =
                     interceptor.rebuildSqlWithMeta(sql, new String[]{"id"}, new Object[]{0}, 1000);
             assertEquals(2, r.removedPlaceholders);
@@ -235,7 +265,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("两字段元组比较 + 按顺序多列排序")
         void shouldGenerateTupleWhereAndMultiOrderBy() {
             String sql = "SELECT * FROM demo";
-            String result = interceptor.rebuildSql(sql,
+            String result = rewrite(sql,
                     new String[]{"id", "name"},
                     new Object[]{10L, "user_10"},
                     20);
@@ -246,7 +276,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("多字段 + 已有WHERE追加AND元组条件")
         void shouldAppendTupleConditionWithExistingWhere() {
             String sql = "SELECT * FROM demo WHERE status = 1";
-            String result = interceptor.rebuildSql(sql,
+            String result = rewrite(sql,
                     new String[]{"create_time", "id"},
                     new Object[]{"2026-06-08 10:00:00", 42L},
                     100);
@@ -257,7 +287,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("多字段驼峰名自动转下划线")
         void shouldNormalizeCamelCaseColumns() {
             String sql = "SELECT * FROM demo";
-            String result = interceptor.rebuildSql(sql,
+            String result = rewrite(sql,
                     new String[]{"createTime", "idName"},
                     new Object[]{"2026-06-08", 99L},
                     50);
@@ -268,7 +298,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("多字段支持表别名前缀")
         void shouldSupportTableAliasInMultiFields() {
             String sql = "SELECT t.* FROM demo t WHERE t.status = 1";
-            String result = interceptor.rebuildSql(sql,
+            String result = rewrite(sql,
                     new String[]{"t.create_time", "t.id"},
                     new Object[]{0L, 0L},
                     10);
@@ -279,7 +309,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("字符串包含单引号需转义")
         void shouldEscapeSingleQuoteInLiteral() {
             String sql = "SELECT * FROM demo";
-            String result = interceptor.rebuildSql(sql,
+            String result = rewrite(sql,
                     new String[]{"id", "name"},
                     new Object[]{1L, "O'Brien"},
                     10);
@@ -290,7 +320,7 @@ class CursorPaginationInterceptorTest {
         @DisplayName("单字段数组与原始单字段输出一致（向后兼容）")
         void shouldFallbackToScalarComparisonForSingleField() {
             String sql = "SELECT * FROM user WHERE status = 1";
-            String result = interceptor.rebuildSql(sql,
+            String result = rewrite(sql,
                     new String[]{"id"}, new Object[]{500L}, 1000);
             assertEquals("SELECT * FROM user WHERE status = 1 AND id > 500 ORDER BY id ASC LIMIT 1000", result);
         }

@@ -3,7 +3,6 @@ package io.github.luozhan.excel.cursor;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.JdbcParameter;
 import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
 import net.sf.jsqlparser.expression.operators.relational.MinorThan;
@@ -98,30 +97,13 @@ public class CursorPaginationInterceptor implements Interceptor {
 
         // 过滤掉 null 字段：left join 场景下 tie-breaker 可能为 null，忽略该列的查询条件
         // 首次查询时不过滤，保持完整字段列表以生成 ORDER BY + LIMIT
-        String[] finalDbColumns;
-        Object[] finalLastIds;
-        boolean hasNonNullCursor;
-        if (isFirstQuery) {
-            finalDbColumns = effectiveDbColumns;
-            finalLastIds = null;
-            hasNonNullCursor = false;
-        } else {
-            List<String> nonNullDbCols = new ArrayList<>();
-            List<Object> nonNullLastIds = new ArrayList<>();
-            for (int i = 0; i < effectiveLastIds.length; i++) {
-                if (effectiveLastIds[i] != null) {
-                    nonNullDbCols.add(effectiveDbColumns[i]);
-                    nonNullLastIds.add(effectiveLastIds[i]);
-                }
-            }
-            hasNonNullCursor = !nonNullDbCols.isEmpty();
-            finalDbColumns = nonNullDbCols.toArray(new String[0]);
-            finalLastIds = nonNullLastIds.toArray(new Object[0]);
-        }
+        FilteredCursor cursor = isFirstQuery
+                ? new FilteredCursor(effectiveDbColumns, null, false)
+                : filterNonNullCursor(effectiveDbColumns, effectiveLastIds);
 
         RewriteResult result = rebuildSqlWithMeta(originalSql,
-                finalDbColumns, finalLastIds,
-                state.getBatchSize(), desc, !hasNonNullCursor);
+                cursor.dbColumns, cursor.lastIds,
+                state.getBatchSize(), desc, !cursor.hasNonNull);
 
         if (!originalSql.equals(result.sql)) {
             BoundSql newBoundSql = buildNewBoundSql(ms, boundSql, result);
@@ -132,9 +114,9 @@ public class CursorPaginationInterceptor implements Interceptor {
             if (log.isDebugEnabled()) {
                 String op = desc ? "<" : ">";
                 log.debug("游标分页SQL改造完成，cursor=({}) {} ({}), batch={}",
-                        String.join(",", finalDbColumns),
+                        String.join(",", cursor.dbColumns),
                         op,
-                        joinLastIds(finalLastIds != null ? finalLastIds : new Object[0]),
+                        joinLastIds(cursor.lastIds != null ? cursor.lastIds : new Object[0]),
                         state.getBatchSize());
                 log.debug("原始SQL: {}", originalSql);
                 log.debug("改造SQL: {}", result.sql);
@@ -204,6 +186,37 @@ public class CursorPaginationInterceptor implements Interceptor {
             this.startIndex = startIndex;
             this.desc = desc;
             this.orderByCol = orderByCol;
+        }
+    }
+
+    /**
+     * 过滤出非 null 的游标列及其对应的 lastId。
+     */
+    private FilteredCursor filterNonNullCursor(String[] effectiveDbColumns, Object[] effectiveLastIds) {
+        List<String> nonNullDbCols = new ArrayList<>();
+        List<Object> nonNullLastIds = new ArrayList<>();
+        for (int i = 0; i < effectiveLastIds.length; i++) {
+            if (effectiveLastIds[i] != null) {
+                nonNullDbCols.add(effectiveDbColumns[i]);
+                nonNullLastIds.add(effectiveLastIds[i]);
+            }
+        }
+        return new FilteredCursor(
+                nonNullDbCols.toArray(new String[0]),
+                nonNullLastIds.toArray(new Object[0]),
+                !nonNullDbCols.isEmpty()
+        );
+    }
+
+    private static class FilteredCursor {
+        final String[] dbColumns;
+        final Object[] lastIds;
+        final boolean hasNonNull;
+
+        FilteredCursor(String[] dbColumns, Object[] lastIds, boolean hasNonNull) {
+            this.dbColumns = dbColumns;
+            this.lastIds = lastIds;
+            this.hasNonNull = hasNonNull;
         }
     }
 
@@ -326,7 +339,7 @@ public class CursorPaginationInterceptor implements Interceptor {
      * 1. MappedStatement 的返回类型等于 {@link ExcelContext.CursorState#getVoClass()}
      * 2. MappedStatement 的返回类型等于 {@link ExcelContext.CursorState#getEntityClass()}
      */
-    boolean shouldRewrite(MappedStatement ms, ExcelContext.CursorState state) {
+    private boolean shouldRewrite(MappedStatement ms, ExcelContext.CursorState state) {
         Class<?> resultType = extractResultType(ms);
         if (resultType == null || state == null) {
             return false;
@@ -350,22 +363,6 @@ public class CursorPaginationInterceptor implements Interceptor {
             return resultMaps.get(0).getType();
         }
         return null;
-    }
-
-    /**
-     * 改造 SQL：仅作用于最外层 SELECT，子查询不受影响。
-     * <p>
-     * 公开签名供单元测试直接断言改写结果。单字段时等价于传 {@code new String[]{dbColumn}}。
-     */
-    String rebuildSql(String sql, String dbColumn, Object lastId, int batchSize) {
-        return rebuildSqlWithMeta(sql, new String[]{dbColumn}, new Object[]{lastId}, batchSize).sql;
-    }
-
-    /**
-     * 多字段改写入口：单元测试直接断言改写结果。
-     */
-    String rebuildSql(String sql, String[] dbColumns, Object[] lastIds, int batchSize) {
-        return rebuildSqlWithMeta(sql, dbColumns, lastIds, batchSize).sql;
     }
 
     /**
@@ -500,8 +497,14 @@ public class CursorPaginationInterceptor implements Interceptor {
         int count = 0;
 
         Limit limit = plain.getLimit();
-        if (limit != null && limit.getRowCount() instanceof JdbcParameter) {
-            count++;
+        if (limit != null) {
+            if (limit.getRowCount() instanceof JdbcParameter) {
+                count++;
+            }
+            // MySQL 风格 LIMIT offset, rowCount
+            if (limit.getOffset() instanceof JdbcParameter) {
+                count++;
+            }
         }
 
         Offset offset = plain.getOffset();
@@ -526,16 +529,7 @@ public class CursorPaginationInterceptor implements Interceptor {
      * 同时将驼峰命名（idName）自动转换为数据库列名风格的下划线命名（id_name）。
      */
     private Column parseColumn(String name) {
-        String normalized = toSnakeCase(name);
-        try {
-            Expression expr = CCJSqlParserUtil.parseExpression(normalized);
-            if (expr instanceof Column) {
-                return (Column) expr;
-            }
-        } catch (Exception ignore) {
-            log.warn("游标列名解析失败，退回纯列名：{}", normalized);
-        }
-        return new Column(normalized);
+        return new Column(toSnakeCase(name));
     }
 
     /**
@@ -570,25 +564,9 @@ public class CursorPaginationInterceptor implements Interceptor {
     }
 
     /**
-     * lastId 字面量序列化：数字直出，其他类型用单引号字符串包装
+     * lastId 字面量序列化：数字直出，布尔转 1/0，其他类型用单引号字符串包装并转义单引号。
      */
-    private Expression toLiteral(Object v) {
-        if (v == null) {
-            return new LongValue(0L);
-        }
-        if (v instanceof Number) {
-            return new LongValue(((Number) v).longValue());
-        }
-        if (v instanceof Boolean) {
-            return new LongValue(((Boolean) v) ? 1L : 0L);
-        }
-        return new StringValue(v.toString());
-    }
-
-    /**
-     * lastId 字面量字符串化（用于元组拼接，单引号字符串内部需转义）
-     */
-    private String toLiteralString(Object v) {
+    private String literalSql(Object v) {
         if (v == null) {
             return "0";
         }
@@ -599,6 +577,24 @@ public class CursorPaginationInterceptor implements Interceptor {
             return ((Boolean) v) ? "1" : "0";
         }
         return "'" + v.toString().replace("'", "''") + "'";
+    }
+
+    /**
+     * lastId 字面量序列化为 JSqlParser Expression。
+     */
+    private Expression toLiteral(Object v) {
+        try {
+            return CCJSqlParserUtil.parseExpression(literalSql(v));
+        } catch (Exception e) {
+            throw new IllegalStateException("游标字面量解析失败：" + v, e);
+        }
+    }
+
+    /**
+     * lastId 字面量字符串化（用于元组拼接）。
+     */
+    private String toLiteralString(Object v) {
+        return literalSql(v);
     }
 
     /**

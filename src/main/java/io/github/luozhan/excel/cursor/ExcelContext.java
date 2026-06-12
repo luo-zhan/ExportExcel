@@ -21,7 +21,7 @@ public class ExcelContext {
     }
 
     public static boolean isActive() {
-        return CONTEXT.get() != null && CONTEXT.get().equals(Boolean.TRUE);
+        return Boolean.TRUE.equals(CONTEXT.get());
     }
 
     /**
@@ -102,7 +102,7 @@ public class ExcelContext {
          */
         private final String[] voFieldNames;
         private final int batchSize;
-        private Object[] lastIds;
+        private final Object[] lastIds;
         /**
          * 导出VO类型，用于拦截器匹配目标SQL
          */
@@ -145,10 +145,6 @@ public class ExcelContext {
 
         public Object[] getLastIds() {
             return lastIds;
-        }
-
-        public void setLastIds(Object[] lastIds) {
-            this.lastIds = lastIds;
         }
 
         public Class<?> getVoClass() {
