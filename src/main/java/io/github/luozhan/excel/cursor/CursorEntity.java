@@ -19,7 +19,7 @@ import java.lang.annotation.*;
  * @Data
  * @CursorEntity(EmployeeDO.class)
  * public class EmployeeVO {
- *     @CursorField(value = "create_time", order = 0)
+ *     @CursorField(value = "createTime", order = 0)
  *     private Date createTime;
  *
  *     @CursorField(value = "id", order = 1)
@@ -27,7 +27,6 @@ import java.lang.annotation.*;
  * }
  * }</pre>
  * <p>
- * 当 VO 与数据库实体类型一致（即 Mapper 直接返回 VO）时，无需声明该注解。
  *
  * @author luozhan
  * @since 2026-06-10
@@ -39,7 +38,7 @@ import java.lang.annotation.*;
 public @interface CursorEntity {
 
     /**
-     * Mapper/SQL 实际返回的实体类型。
+     * Mapper/SQL 实际返回的实体类型，如果和VO类型一致，可不填
      */
-    Class<?> value();
+    Class<?> value() default void.class;
 }

@@ -7,7 +7,7 @@ import io.github.luozhan.excel.cursor.ExcelContext;
 import io.github.luozhan.excel.cursor.ExcelContext.CursorState;
 import io.github.luozhan.excel.paramhandle.req.PageParamHandler;
 import io.github.luozhan.excel.paramhandle.req.PageParamProxy;
-import io.github.luozhan.excel.style.AdaptiveWidthStyleStrategy;
+import io.github.luozhan.excel.writehandle.AdaptiveWidthCellWriteHandler;
 import org.apache.commons.codec.CharEncoding;
 import org.apache.fesod.sheet.ExcelWriter;
 import org.apache.fesod.sheet.FesodSheet;
@@ -232,7 +232,7 @@ public class ExportExcelAspect {
         log.info("全量查询数据一次性写入excel，数据量：{}条", data.size());
         checkMaxSize(data.size(), maxSize);
         ExcelWriterBuilder excelWriterBuilder = FesodSheet.write(response.getOutputStream(), voClass)
-                .registerWriteHandler(new AdaptiveWidthStyleStrategy());
+                .registerWriteHandler(new AdaptiveWidthCellWriteHandler());
         // 注入用户自定义数据转换器
         converterProvider.stream().forEach(excelWriterBuilder::registerConverter);
         excelWriterBuilder.sheet(sheetName).doWrite(data);
@@ -255,7 +255,7 @@ public class ExportExcelAspect {
      */
     private ExcelWriter newExcelWriter(Class<?> voClass, HttpServletResponse response) throws IOException {
         ExcelWriterBuilder builder = FesodSheet.write(response.getOutputStream(), voClass)
-                .registerWriteHandler(new AdaptiveWidthStyleStrategy());
+                .registerWriteHandler(new AdaptiveWidthCellWriteHandler());
         converterProvider.orderedStream().forEach(builder::registerConverter);
         return builder.build();
     }

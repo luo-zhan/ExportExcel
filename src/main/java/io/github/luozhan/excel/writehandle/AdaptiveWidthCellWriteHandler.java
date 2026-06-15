@@ -1,10 +1,10 @@
-package io.github.luozhan.excel.style;
+package io.github.luozhan.excel.writehandle;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.fesod.sheet.enums.CellDataTypeEnum;
 import org.apache.fesod.sheet.metadata.data.WriteCellData;
+import org.apache.fesod.sheet.write.handler.CellWriteHandler;
 import org.apache.fesod.sheet.write.handler.context.CellWriteHandlerContext;
-import org.apache.fesod.sheet.write.style.column.AbstractColumnWidthStyleStrategy;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Sheet;
 
@@ -19,15 +19,16 @@ import java.util.Map;
  * @author luozhan
  * @since 2026-05-04
  */
-public class AdaptiveWidthStyleStrategy extends AbstractColumnWidthStyleStrategy {
+public class AdaptiveWidthCellWriteHandler implements CellWriteHandler {
+    // 采样阈值，避免分析大量记录影响性能
     private static final int SAMPLE_THRESHOLD = 200;
     // 单元格内容的固定边距
     private static final int PADDING = 5;
-    private final Map<Integer, Integer> maxColumnWidthCache = new HashMap<>(8);
+    private final Map<Integer, Integer> maxColumnWidthCache = new HashMap<>(SAMPLE_THRESHOLD);
     private int currentRowIndex = 0;
 
     @Override
-    protected void setColumnWidth(CellWriteHandlerContext context) {
+    public void afterCellDispose(CellWriteHandlerContext context) {
         boolean needSetWidth = context.getHead() || !CollectionUtils.isEmpty(context.getCellDataList());
         if (!needSetWidth) {
             return;

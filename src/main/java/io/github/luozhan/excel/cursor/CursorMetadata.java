@@ -8,12 +8,10 @@ import java.util.List;
  * <p>
  * 描述一个 VO 类启用游标分页所需的全部静态信息：
  * <ul>
- *     <li>{@link #dbColumns()}：数据库列名数组（按 {@link CursorField#order()} 升序）</li>
+ *     <li>{@link #dbColumns()}：数据库列名数组（按 {@link CursorField#order()} 排序）</li>
  *     <li>{@link #voFieldNames()}：与 dbColumns 一一对应的 VO 字段名</li>
- *     <li>{@link #entityClass()}：来自类级 {@link CursorEntity}，未声明时为 {@link Void}</li>
+ *     <li>{@link #entityClass()}：来自类级 {@link CursorEntity}，通过该类和sql的ResultType匹配，以判断是否为需要改写的sol</li>
  * </ul>
- * 同时封装从 VO 记录中按顺序提取游标值的能力（{@link #extractLastIds(Object)}），
- * 使切面层只需关心导出循环的编排，无需直接操作反射字段。
  *
  * @author luozhan
  * @since 2026-06-10
@@ -55,7 +53,7 @@ public final class CursorMetadata {
      * 从一条 VO 记录中按 {@link CursorField#order()} 顺序提取所有游标字段的值，
      * 用作下一批查询的 lastIds（元组比较的右值）。
      *
-     * @param record 上一批的最后一条记录（不可为 null）
+     * @param record 上一批的最后一条记录】
      * @return 与 {@link #dbColumns()} 等长的游标值数组，允许 null 值
      */
     public Object[] extractLastIds(Object record) {
@@ -68,7 +66,7 @@ public final class CursorMetadata {
      * 当拦截器根据原始 SQL 的 ORDER BY 解析出有效字段起始索引后使用，
      * 返回的数组长度 = {@link #size()} - startIndex。
      *
-     * @param record     上一批的最后一条记录（不可为 null）
+     * @param record     上一批的最后一条记录】
      * @param startIndex 起始索引（0-based），从该索引开始到末尾的字段参与提取
      * @return 游标值数组，允许 null 值
      */
