@@ -7,19 +7,19 @@ import io.github.luozhan.excel.cursor.ExcelContext;
 import io.github.luozhan.excel.cursor.ExcelContext.CursorState;
 import io.github.luozhan.excel.paramhandle.req.PageParamHandler;
 import io.github.luozhan.excel.paramhandle.req.PageParamProxy;
-import io.github.luozhan.excel.writehandle.AdaptiveWidthCellWriteHandler;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.CharEncoding;
 import org.apache.fesod.sheet.ExcelWriter;
 import org.apache.fesod.sheet.FesodSheet;
 import org.apache.fesod.sheet.converters.Converter;
 import org.apache.fesod.sheet.write.builder.ExcelWriterBuilder;
+import org.apache.fesod.sheet.write.handler.CellWriteHandler;
 import org.apache.fesod.sheet.write.metadata.WriteSheet;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
 import org.springframework.core.MethodParameter;
@@ -37,7 +37,6 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
-import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -57,40 +56,38 @@ import java.util.Objects;
  */
 @Aspect
 @Order(1)
+@Slf4j
+@AllArgsConstructor
 public class ExportExcelAspect {
-    private static final Logger log = LoggerFactory.getLogger(ExportExcelAspect.class);
+
     private static final String FILE_NAME_KEYWORDS = "fileName";
 
-    @Resource
     private ConversionService mvcConversionService;
 
-    @Resource
     private ObjectProvider<PageParamHandler<?>> pageParamHandlers;
 
-    @Resource
     private ObjectProvider<Converter<?>> converterProvider;
-
     /**
      * 注入所有的 ResponseBodyAdvice，Spring 会自动按 @Order 排序
      */
-    @Resource
     private ObjectProvider<ResponseBodyAdvice<?>> responseBodyAdvices;
 
-    /** 注入消息转换器，用于模拟 Spring MVC 的 MediaType 选择逻辑 */
-    @Resource
+    /**
+     * 注入消息转换器，用于模拟 Spring MVC 的 MediaType 选择逻辑
+     */
     private HttpMessageConverters messageConverters;
 
     /**
      * 游标分页拦截器（可选，仅当 MyBatis 在 classpath 时存在）
      */
-    @Resource
     private ObjectProvider<CursorPaginationInterceptor> cursorInterceptorProvider;
 
+    private ObjectProvider<CellWriteHandler> cellWriteHandlers;
     /**
      * 游标元数据解析器：扫描 VO 上 @CursorField/@CursorEntity 并缓存
      */
-    @Resource
     private CursorMetadataResolver cursorMetadataResolver;
+
 
     @Around("@annotation(exportExcel)")
     public Object around(ProceedingJoinPoint point, ExportExcel exportExcel) throws Throwable {
@@ -112,25 +109,29 @@ public class ExportExcelAspect {
             int batchSize = exportExcel.batchSize();
             long maxSize = exportExcel.limit();
             CursorMetadata cursorMetadata = cursorMetadataResolver.resolve(voClass);
+            boolean useCursor = cursorMetadata != null;
+            if (useCursor && cursorInterceptorProvider.getIfAvailable() == null) {
+                // 游标分页模式：VO中配置了@CursorClass、@CursorField 且 CursorPaginationInterceptor 已注册时启用
+                log.warn("当前环境未使用mybatis，CursorPaginationInterceptor未生效, 无法开启游标分页导出，已降级为传统分页导出！");
+                useCursor = false;
+            }
             PageParamProxy<?> pageParamProxy = findPageableParam(point.getArgs());
             setExcelResponse(response, fileName);
 
-            // 提前构造 MethodParameter，所有批次复用
             MethodParameter returnType = new MethodParameter(method, -1);
-            // 游标分页模式：VO 上存在 @CursorField 且 CursorPaginationInterceptor 已注册时启用
-            boolean useCursor = cursorMetadata != null && cursorInterceptorProvider.getIfAvailable() != null;
 
-            if (batchSize > 0 && (pageParamProxy != null || useCursor)) {
-                if (useCursor) {
-                    // 游标分页：将 IPage size 设为 -1，使 MyBatis-Plus 分页拦截器跳过
-                    if (pageParamProxy != null) {
-                        pageParamProxy.setPageParam(1, -1);
-                    }
-                    cursorBatchWrite(point, batchSize, maxSize, voClass, cursorMetadata, sheetName, request, response, returnType);
-                } else {
-                    batchWrite(point, pageParamProxy, batchSize, maxSize, voClass, sheetName, request, response, returnType);
+            if (batchSize > 0 && useCursor) {
+                // 1、游标分页：将 pageSize 设为 -1，使 MyBatis-Plus 分页拦截器跳过
+                if (pageParamProxy != null) {
+                    pageParamProxy.setPageParam(1, -1);
                 }
+                cursorBatchWrite(point, batchSize, maxSize, voClass, cursorMetadata, sheetName, request, response, returnType);
+            } else if (batchSize > 0 && pageParamProxy != null) {
+                // 2、传统分页
+                batchWrite(point, pageParamProxy, batchSize, maxSize, voClass, sheetName, request, response, returnType);
             } else {
+                // 3、一次性全量导出
+                log.debug("进行一次性全量导出");
                 fullWrite(point, voClass, maxSize, sheetName, request, response, returnType);
             }
             return null;
@@ -231,15 +232,16 @@ public class ExportExcelAspect {
         List<?> data = fetchBatch(point, returnType, request, response);
         log.info("全量查询数据一次性写入excel，数据量：{}条", data.size());
         checkMaxSize(data.size(), maxSize);
-        ExcelWriterBuilder excelWriterBuilder = FesodSheet.write(response.getOutputStream(), voClass)
-                .registerWriteHandler(new AdaptiveWidthCellWriteHandler());
-        // 注入用户自定义数据转换器
+        ExcelWriterBuilder excelWriterBuilder = FesodSheet.write(response.getOutputStream(), voClass);
+        // 注入自定义单元格写处理器
+        cellWriteHandlers.orderedStream().forEach(excelWriterBuilder::registerWriteHandler);
+        // 注入自定义数据转换器
         converterProvider.stream().forEach(excelWriterBuilder::registerConverter);
         excelWriterBuilder.sheet(sheetName).doWrite(data);
     }
 
     /**
-     * 执行一次目标方法 + 应用 ResponseBodyAdvice + 抽取 List 数据，三步合一。
+     * 执行一次目标方法 + 应用ResponseBodyAdvice + 抽取List数据
      */
     private List<?> fetchBatch(ProceedingJoinPoint point,
                                MethodParameter returnType,
@@ -254,8 +256,10 @@ public class ExportExcelAspect {
      * 构造一个支持自适应列宽 + 用户自定义转换器的 ExcelWriter。
      */
     private ExcelWriter newExcelWriter(Class<?> voClass, HttpServletResponse response) throws IOException {
-        ExcelWriterBuilder builder = FesodSheet.write(response.getOutputStream(), voClass)
-                .registerWriteHandler(new AdaptiveWidthCellWriteHandler());
+        ExcelWriterBuilder builder = FesodSheet.write(response.getOutputStream(), voClass);
+        // 注入自定义单元格写处理器
+        cellWriteHandlers.orderedStream().forEach(builder::registerWriteHandler);
+        // 注入自定义数据转换器
         converterProvider.orderedStream().forEach(builder::registerConverter);
         return builder.build();
     }

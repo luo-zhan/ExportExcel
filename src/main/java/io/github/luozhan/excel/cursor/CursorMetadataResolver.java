@@ -1,5 +1,7 @@
 package io.github.luozhan.excel.cursor;
 
+import lombok.AllArgsConstructor;
+
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,6 +39,10 @@ public class CursorMetadataResolver {
     }
 
     private Optional<CursorMetadata> doResolve(Class<?> clazz) {
+        Class<?> entityClass = resolveEntityClass(clazz);
+        if (entityClass == null) {
+            return Optional.empty();
+        }
         List<FieldEntry> entries = collectAnnotatedFields(clazz);
         if (entries.isEmpty()) {
             return Optional.empty();
@@ -52,7 +58,7 @@ public class CursorMetadataResolver {
             voFields[i] = entries.get(i).field;
             dbColumns[i] = entries.get(i).dbColumn;
         }
-        return Optional.of(new CursorMetadata(voFields, dbColumns, resolveEntityClass(clazz)));
+        return Optional.of(new CursorMetadata(voFields, dbColumns, entityClass));
     }
 
     /**
@@ -62,15 +68,15 @@ public class CursorMetadataResolver {
         List<FieldEntry> entries = new ArrayList<>();
         Class<?> current = clazz;
         while (current != null && current != Object.class) {
-            for (Field f : current.getDeclaredFields()) {
-                CursorField cf = f.getAnnotation(CursorField.class);
+            for (Field field : current.getDeclaredFields()) {
+                CursorField cf = field.getAnnotation(CursorField.class);
                 if (cf == null) {
                     continue;
                 }
-                f.setAccessible(true);
+                field.setAccessible(true);
                 String value = cf.value();
-                String dbColumn = (value == null || value.isEmpty()) ? f.getName() : value;
-                entries.add(new FieldEntry(cf.order(), f, dbColumn));
+                String dbColumn = (value == null || value.isEmpty()) ? field.getName() : value;
+                entries.add(new FieldEntry(cf.order(), field, dbColumn));
             }
             current = current.getSuperclass();
         }
@@ -96,15 +102,10 @@ public class CursorMetadataResolver {
     /**
      * 解析阶段的临时条目，最终按 order 排序后转换为 {@link CursorMetadata}
      */
+    @AllArgsConstructor
     private static final class FieldEntry {
         final int order;
         final Field field;
         final String dbColumn;
-
-        FieldEntry(int order, Field field, String dbColumn) {
-            this.order = order;
-            this.field = field;
-            this.dbColumn = dbColumn;
-        }
     }
 }

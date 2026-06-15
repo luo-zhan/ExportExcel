@@ -43,6 +43,7 @@
         <commons-codec.version>1.15</commons-codec.version>
         <commons-collections4.version>4.4</commons-collections4.version>
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
+        <jsqlparser.version>4.6</jsqlparser.version>
     </properties>
 
     <dependencyManagement>
@@ -66,7 +67,8 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <scope>test</scope>
+            <scope>provided</scope>
+            <optional>true</optional>
         </dependency>
 
         <dependency>
@@ -88,12 +90,11 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- 游标分页SQL改写依赖（仅在Excel导出场景被加载，可选） -->
+        <!-- 游标分页SQL改写依赖 -->
         <dependency>
             <groupId>com.github.jsqlparser</groupId>
             <artifactId>jsqlparser</artifactId>
-            <version>4.9</version>
-            <optional>true</optional>
+            <version>${jsqlparser.version}</version>
         </dependency>
 
         <dependency>
