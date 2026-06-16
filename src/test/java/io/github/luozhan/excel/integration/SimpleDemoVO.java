@@ -1,5 +1,6 @@
 package io.github.luozhan.excel.integration;
 
+import io.swagger.annotations.ApiModelProperty;
 import lombok.*;
 import org.apache.fesod.sheet.annotation.ExcelProperty;
 
@@ -19,7 +20,8 @@ import java.util.Date;
 @ToString
 public class SimpleDemoVO {
 
-    @ExcelProperty("员工姓名")
+    // 有swagger注解，省略@ExcelProperty也可以
+    @ApiModelProperty("员工姓名")
     private String name;
 
     @ExcelProperty("年龄")
