@@ -1,10 +1,9 @@
-package io.github.luozhan.excel;
+package io.github.luozhan.excel.core;
 
+import io.github.luozhan.excel.core.ExcelContext.CursorState;
 import io.github.luozhan.excel.cursor.CursorMetadata;
 import io.github.luozhan.excel.cursor.CursorMetadataResolver;
 import io.github.luozhan.excel.cursor.CursorPaginationInterceptor;
-import io.github.luozhan.excel.cursor.ExcelContext;
-import io.github.luozhan.excel.cursor.ExcelContext.CursorState;
 import io.github.luozhan.excel.paramhandle.req.PageParamHandler;
 import io.github.luozhan.excel.paramhandle.req.PageParamProxy;
 import lombok.AllArgsConstructor;

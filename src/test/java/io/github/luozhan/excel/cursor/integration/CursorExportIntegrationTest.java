@@ -1,6 +1,6 @@
 package io.github.luozhan.excel.cursor.integration;
 
-import io.github.luozhan.excel.ExportExcel;
+import io.github.luozhan.excel.core.ExportExcel;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;

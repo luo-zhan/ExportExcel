@@ -1,6 +1,6 @@
 package io.github.luozhan.excel.sample;
 
-import io.github.luozhan.excel.ExportExcel;
+import io.github.luozhan.excel.core.ExportExcel;
 import io.github.luozhan.excel.integration.DemoMapper;
 import io.github.luozhan.excel.integration.SimpleDemoVO;
 import io.github.luozhan.excel.sample.model.TestPage;

@@ -1,5 +1,6 @@
 package io.github.luozhan.excel.cursor;
 
+import io.github.luozhan.excel.core.ExcelContext;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.JdbcParameter;
 import net.sf.jsqlparser.expression.LongValue;
