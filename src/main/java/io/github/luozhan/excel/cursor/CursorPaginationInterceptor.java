@@ -403,11 +403,12 @@ public class CursorPaginationInterceptor implements Interceptor {
         if (!(stmt instanceof Select)) {
             return new RewriteResult(sql, 0);
         }
-        Select body = ((Select) stmt);
-        if (!(body instanceof PlainSelect)) {
+        Select select = ((Select) stmt);
+        SelectBody selectBody = select.getSelectBody();
+        if (!(selectBody instanceof PlainSelect)) {
             return new RewriteResult(sql, 0);
         }
-        PlainSelect plain = (PlainSelect) body;
+        PlainSelect plain = (PlainSelect) selectBody;
 
         // 在替换前统计即将被丢弃子句中的占位符数量（基于 AST，无需扫描整段 SQL）
         int removedPlaceholders = countPlaceholdersInReplacedClauses(plain);
@@ -436,7 +437,7 @@ public class CursorPaginationInterceptor implements Interceptor {
         plain.setLimit(limit);
         plain.setOffset(null);
 
-        return new RewriteResult(body.toString(), removedPlaceholders);
+        return new RewriteResult(select.toString(), removedPlaceholders);
     }
 
     /**

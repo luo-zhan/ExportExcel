@@ -116,17 +116,17 @@ public class ExportExcelAspect {
                 useCursor = false;
             }
             PageParamProxy<?> pageParamProxy = findPageableParam(point.getArgs());
-            setExcelResponse(response, fileName);
-
+            boolean isPageQuery = pageParamProxy != null;
             MethodParameter returnType = new MethodParameter(method, -1);
-
-            if (batchSize > 0 && useCursor) {
+            // 设置响应头
+            setExcelResponse(response, fileName);
+            if (useCursor) {
                 // 1、游标分页：将 pageSize 设为 -1，使 MyBatis-Plus 分页拦截器跳过
-                if (pageParamProxy != null) {
+                if (isPageQuery) {
                     pageParamProxy.setPageParam(1, -1);
                 }
                 cursorBatchWrite(point, batchSize, maxSize, voClass, cursorMetadata, sheetName, request, response, returnType);
-            } else if (batchSize > 0 && pageParamProxy != null) {
+            } else if (isPageQuery) {
                 // 2、传统分页
                 batchWrite(point, pageParamProxy, batchSize, maxSize, voClass, sheetName, request, response, returnType);
             } else {
