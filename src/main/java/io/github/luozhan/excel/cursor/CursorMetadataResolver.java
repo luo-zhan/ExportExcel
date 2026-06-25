@@ -95,8 +95,22 @@ public class CursorMetadataResolver {
     }
 
     private Class<?> resolveEntityClass(Class<?> clazz) {
-        CursorEntity ce = clazz.getAnnotation(CursorEntity.class);
-        return ce != null ? ce.value() : Void.class;
+        CursorEntity annotation = clazz.getAnnotation(CursorEntity.class);
+        if (annotation != null) {
+            // 先判断 value 是否为 Void.class，是则再判断 className 是否为空
+            if (annotation.value() != Void.class) {
+                return annotation.value();
+            }
+            String className = annotation.className();
+            if (!className.isEmpty()) {
+                try {
+                    return Class.forName(className);
+                } catch (ClassNotFoundException e) {
+                    throw new RuntimeException("类 " + clazz.getSimpleName() + " 中 @CursorEntity 的 name=" + className + " 未找到", e);
+                }
+            }
+        }
+        return Void.class;
     }
 
     /**

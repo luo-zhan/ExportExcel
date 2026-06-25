@@ -40,5 +40,10 @@ public @interface CursorEntity {
     /**
      * Mapper/SQL 实际返回的实体类型，如果和VO类型一致，可不填
      */
-    Class<?> value() default void.class;
+    Class<?> value() default Void.class;
+
+    /**
+     * 类的全路径，class无法直接使用时可以使用全路径方式指定
+     */
+    String className() default "";
 }
